@@ -160,16 +160,52 @@ class SourceManager(object):
         return src
 
 
-    def remove(self, url: str) -> None:
-        assert url!= ""
-        self.__sources[url].remove()
-        del self.__sources[url]
+    def __remove(self, src: Source) -> None:
+        src.remove()
+        del self.__sources[src.url]
         self.__write()
+
+
+    def remove_by_url(self, url: str) -> None:
+        assert url != ""
+        self.__remove(self.get_by_url(url))
+
+
+    def remove_by_name(self, name: str) -> None:
+        assert name != ""
+        self.__remove(self.get_by_name(name))
 
 
     def update(self) -> None:
         for src in self.__sources.values():
             src.update()
+
+
+    def get_by_name(self, name: str) -> Source:
+        """
+        Retrieves the source associated with a given name.
+
+        Raises:
+            IndexError: if no source is associated with that name.
+        """
+        for s in self:
+            if s.name == name:
+                return s
+
+        raise IndexError
+
+
+    def get_by_url(self, url: str) -> Source:
+        """
+        Retrieves the source provided by a given URL.
+
+        Raises:
+            IndexError: if no source is associated with that URL.
+        """
+        if url in self.__sources:
+            return self.__sources[url]
+
+        raise IndexError
 
 
     def __getitem__(self, name_or_url: str) -> Source:

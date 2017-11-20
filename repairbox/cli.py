@@ -26,9 +26,9 @@ def add_source(rbox: 'RepairBox', src: str) -> None:
     print('added dataset: {}'.format(src))
 
 
-def remove_source(rbox: 'RepairBox', src: str) -> None:
-    rbox.sources.remove(ds)
-    print('removed source: {}'.format(src))
+def remove_source(rbox: 'RepairBox', name: str) -> None:
+    rbox.sources.remove_by_name(name)
+    print('removed source: {}'.format(name))
 
 
 def update_sources(rbox: 'RepairBox', ) -> None:
