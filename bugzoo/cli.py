@@ -375,10 +375,18 @@ def main():
 
 
     # parse and process arguments
-    args = parser.parse_args()
-    if 'func' in vars(args):
-        args.func(args)
+    try:
+        args = parser.parse_args()
+        if 'func' in vars(args):
+            args.func(args)
 
+    # exit gracefully
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+    # pretty-print fatal error messages and log them to file
+    except Error as e:
+        print(e)
 
 if __name__ == "__main__":
     main()
