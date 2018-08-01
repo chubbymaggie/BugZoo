@@ -7,9 +7,15 @@ import signal
 import subprocess
 import logging
 import sys
+import threading
+import time
 
 import flask
+import docker
+import psutil
+import git
 
+from ..version import __version__
 from ..core.bug import Bug
 from ..core.patch import Patch
 from ..compiler import CompilationOutcome
@@ -18,13 +24,17 @@ from ..exceptions import *
 from ..client import Client
 from ..mgr.container import ContainerManager
 from ..mgr.coverage import CoverageManager
+from ..util import indent, report_resource_limits, report_system_resources
 
 logger = logging.getLogger(__name__)  # type: logging.Logger
+log_to_file = None  # type: Optional[logging.handlers.WatchedFileHandler]
 
 # FIXME let's avoid storing the actual server in a global var
 daemon = None  # type: Any
 app = flask.Flask(__name__)
 app.logger.setLevel(logging.ERROR)
+app.logger.disabled = True
+logging.getLogger('werkzeug').disabled = True
 
 
 def throws_errors(func):
@@ -90,6 +100,23 @@ def get_status():
     Used to indicate that the server is healthy and ready to go.
     """
     return '', 204
+
+
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    daemon.containers.clear()
+    if log_to_file:
+        log_to_file.flush()
+
+    def self_destruct() -> None:
+        wait_time = 3
+        for i in range(3, 0, -1):
+            logger.info("Closing server in %d seconds...", i)
+            time.sleep(1.0)
+        os.kill(os.getpid(), signal.SIGTERM)
+    threading.Thread(target=self_destruct).run()
+
+    return '', 202
 
 
 @app.route('/bugs', methods=['GET'])
@@ -490,7 +517,7 @@ def provision_container():
 @throws_errors
 def docker_images(name: str):
     try:
-        daemon.docker.images.remove(name)
+        daemon.docker.images.remove(name, force=True)
         return '', 204
     except Exception as ex:
         return UnexpectedServerError.from_exception(ex), 500
@@ -503,7 +530,7 @@ def run(*,
     log_filename: Optional[str] = None,
     log_level: str = 'info'
     ) -> None:
-    global daemon
+    global daemon, log_to_file
 
     if not log_filename:
         log_filename = "bugzood.log"
@@ -547,10 +574,18 @@ def run(*,
     else:
         log_werkzeug.setLevel(logging.ERROR)
 
+    logger.info("BugZoo version: %s", __version__)
+    logger.info("DockerPy version: %s", docker.__version__)
+    logger.info("psutil version: %s", psutil.__version__)
+    logger.info("Flask version: %s", flask.__version__)
+    logger.info("GitPython version: %s", git.__version__)
+
     try:
         logger.info("launching BugZoo daemon")
         daemon = BugZoo()
         logger.info("launched BugZoo daemon")
+        report_resource_limits(logger)
+        report_system_resources(logger)
         app.run(port=port, host=host, debug=debug, threaded=True)
     finally:
         if daemon:

@@ -1,3 +1,33 @@
+## 2.1.14 (2018-07-08)
+
+### Changes
+
+* Updated `bugzood` to write version information for most of its dependencies
+  to its logs.
+* Reduced number of false warnings that are produced when computing coverage
+  reports.
+* Included `.cxx`, `.cc`, `.h`, `.hh`, and `.hpp` in coverage reports for C++.
+* Added defensive checks to `report_system_resources` to handle environments
+  in which `psutil` fails to report certain information.
+
+
+## 2.1.13 (2018-07-05)
+
+### Features
+
+* added `shutdown` method to client.
+* added `report_system_resources` and `report_resource_limits` to `util`
+  module. Both functions describe the available system resources and write
+  a description to a provided logger.
+* updated `bugzood` to report available resources upon launch.
+
+
+### Changes
+
+* Docker image deletion endpoint now uses `force=True` to ensure that images
+  are destroyed.
+
+
 ## 2.1.12 (2018-06-25)
 
 ### Features
